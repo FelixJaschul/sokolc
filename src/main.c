@@ -3,6 +3,7 @@
 #include "state.h"
 
 void init() {
+    state.done = false;
     SDL_Init(SDL_INIT_VIDEO);
 
     state.window = SDL_CreateWindow(
@@ -51,7 +52,6 @@ void frame() {
 
 int main() {
     init();
-    state.done = false;
     while (!state.done) {
         events();
         frame();
