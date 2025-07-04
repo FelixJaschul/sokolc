@@ -1,62 +1,70 @@
-#include "imgui.h"
-#include "sdl2.h"
-#include "state.h"
+#include <GLUT/glut.h>
 
-void init() {
-    state.done = false;
-    SDL_Init(SDL_INIT_VIDEO);
+GLfloat light_diffuse[] = {1.0f, 0.0f, 0.0f, 1.0f};
+GLfloat light_position[] = {1.0f, 1.0f, 1.0f, 0.0f};
+GLfloat n[6][3] = {
+	{-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f},
+	{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}
+};
+GLint faces[6][4] = {
+	{0, 1, 2, 3}, {3, 2, 6, 7}, {7, 6, 5, 4},
+	{4, 5, 1, 0}, {5, 6, 2, 1}, {7, 4, 0, 3}
+};
+GLfloat v[8][3];
 
-    state.window = SDL_CreateWindow(
-        "DEMO",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        1280,
-        720,
-        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
-    );
+void drawBox(void) {
+	int i;
 
-    state.renderer = SDL_CreateRenderer(state.window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-
-    igCreateContext(NULL);
-
-    ImguiBackendSDL_Init(state.window, state.renderer);
+	for (i = 0; i < 6; i++) {
+		glBegin(GL_QUADS);
+		glNormal3fv(&n[i][0]);
+		glVertex3fv(&v[faces[i][0]][0]);
+		glVertex3fv(&v[faces[i][1]][0]);
+		glVertex3fv(&v[faces[i][2]][0]);
+		glVertex3fv(&v[faces[i][3]][0]);
+		glEnd();
+	}
 }
 
-void deinit() {
-    ImguiBackendSDL_Shutdown();
-    igDestroyContext(NULL);
-    SDL_DestroyRenderer(state.renderer);
-    SDL_DestroyWindow(state.window);
-    SDL_Quit();
+void display(void) {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	drawBox();
+	glutSwapBuffers();
 }
 
-void events() {
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-        ImguiBackendSDL_ProcessEvent(&event);
-        if (event.type == SDL_QUIT) state.done = true;
-    }
+void init(void) {
+	v[0][0] = v[1][0] = v[2][0] = v[3][0] = -1;
+	v[4][0] = v[5][0] = v[6][0] = v[7][0] = 1;
+	v[0][1] = v[1][1] = v[4][1] = v[5][1] = -1;
+	v[2][1] = v[3][1] = v[6][1] = v[7][1] = 1;
+	v[0][2] = v[3][2] = v[4][2] = v[7][2] = 1;
+	v[1][2] = v[2][2] = v[5][2] = v[6][2] = -1;
+
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHTING);
+
+	glEnable(GL_DEPTH_TEST);
+
+	glMatrixMode(GL_PROJECTION);
+	gluPerspective(40.0f, 1.0f, 1.0f, 10.0f);
+	glMatrixMode(GL_MODELVIEW);
+	gluLookAt(0.0f, 0.0f, 5.0f,
+	          0.0f, 0.0f, 0.0f,
+	          0.0f, 1.0f, 0.0f);
+
+	glTranslatef(0.0f, 0.0f, -1.0f);
+	glRotatef(60, 1.0f, 0.0f, 0.0f);
+	glRotatef(-20, 0.0f, 0.0f, 1.0f);
 }
 
-void frame() {
-    ImguiBackendSDL_NewFrame();
-    igNewFrame();
-    igShowDemoWindow(NULL);
-    igRender();
-
-    SDL_SetRenderDrawColor(state.renderer, 114, 144, 154, 255);
-    SDL_RenderClear(state.renderer);
-    ImguiBackendSDL_RenderDrawData(igGetDrawData());
-    SDL_RenderPresent(state.renderer);
-}
-
-int main() {
-    init();
-    while (!state.done) {
-        events();
-        frame();
-    }
-    deinit();
-
-    return 0;
+int main(int argc, char **argv) {
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+	glutCreateWindow("red 3D lighted cube");
+	glutDisplayFunc(display);
+	init();
+	glutMainLoop();
+	return 0;
 }
